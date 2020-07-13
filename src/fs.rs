@@ -425,6 +425,21 @@ impl OpenOptions {
     }
 }
 
+impl Into<std::fs::OpenOptions> for OpenOptions {
+    fn into(self) -> std::fs::OpenOptions {
+        let mut options = std::fs::OpenOptions::new();
+
+        options.read(self.read);
+        options.write(self.write);
+        options.append(self.append);
+        options.truncate(self.truncate);
+        options.create(self.create);
+        options.create_new(self.create_new);
+       
+        options
+    }
+}
+
 impl std::error::Error for FsError {
     fn description(&self) -> &str {
         "DavFileSystem error"
