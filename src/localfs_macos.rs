@@ -8,8 +8,12 @@
 // - fake a ".metadata_never_index" in the root
 // - fake a ".ql_disablethumbnails" file in the root.
 //
+
 use std::ffi::OsString;
+#[cfg(not(target_os = "windows"))]
 use std::os::unix::ffi::OsStrExt;
+#[cfg(target_os = "windows")]
+use std::os::windows::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -154,7 +158,12 @@ impl DUCacheBuilder {
     // add a filename to the list we have
     pub fn add(&mut self, filename: OsString) {
         if let Some(f) = Path::new(&filename).file_name() {
+            #[cfg(not(target_os = "windows"))]
             if f.as_bytes().starts_with(b"._") {
+                self.entries.push(filename);
+            }
+            #[cfg(target_os = "windows")]
+            if String::from_utf16(&f.encode_wide().collect::<Vec<u16>>()).unwrap().as_bytes().starts_with(b"._") {
                 self.entries.push(filename);
             }
         }
@@ -263,9 +272,16 @@ impl LocalFs {
         if !self.inner.macos {
             return false;
         }
+        #[cfg(not(target_os = "windows"))]
         match path.file_name().map(|p| p.as_bytes()) {
             Some(b".localized") => true,
             Some(name) if name.starts_with(b"._") => DU_CACHE.negative(path),
+            _ => false,
+        }
+        #[cfg(target_os = "windows")]
+        match path.file_name().map(|p| String::from_utf16(&p.encode_wide().collect::<Vec<u16>>()).unwrap()).as_deref() {
+            Some(".localized") => true,
+            Some(name) if name.starts_with("._") => DU_CACHE.negative(path),
             _ => false,
         }
     }
