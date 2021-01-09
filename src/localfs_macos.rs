@@ -163,7 +163,7 @@ impl DUCacheBuilder {
                 self.entries.push(filename);
             }
             #[cfg(target_os = "windows")]
-            if String::from_utf16(&f.encode_wide().collect::<Vec<u16>>()).unwrap().as_bytes().starts_with(b"._") {
+            if f.to_str().unwrap().as_bytes().starts_with(b"._") {
                 self.entries.push(filename);
             }
         }
@@ -279,9 +279,9 @@ impl LocalFs {
             _ => false,
         }
         #[cfg(target_os = "windows")]
-        match path.file_name().map(|p| String::from_utf16(&p.encode_wide().collect::<Vec<u16>>()).unwrap()).as_deref() {
-            Some(".localized") => true,
-            Some(name) if name.starts_with("._") => DU_CACHE.negative(path),
+        match path.file_name().map(|p| p.to_str().unwrap().as_bytes()) {
+            Some(b".localized") => true,
+            Some(name) if name.starts_with(b"._") => DU_CACHE.negative(path),
             _ => false,
         }
     }

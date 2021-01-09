@@ -638,7 +638,7 @@ impl DavDirEntry for LocalFsDirEntry {
         }
         #[cfg(target_os = "windows")]
         {
-            String::from_utf16(&self.entry.file_name().encode_wide().collect::<Vec<u16>>()).unwrap().as_bytes().to_vec()
+            self.entry.file_name().to_str().unwrap().as_bytes().to_vec()
         }
     }
 
