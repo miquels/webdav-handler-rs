@@ -12,8 +12,8 @@
 use std::ffi::OsString;
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::ffi::OsStrExt;
-#[cfg(target_os = "windows")]
-use std::os::windows::prelude::*;
+//#[cfg(target_os = "windows")]
+//use std::os::windows::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;

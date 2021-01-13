@@ -1,11 +1,11 @@
 //! Utility module to handle the path part of an URL as a filesytem path.
 //!
-#![cfg_attr(target_os = "windows", allow(unused_imports))]
+//#![cfg_attr(target_os = "windows", allow(unused_imports))]
 use std::error::Error;
 #[cfg(not(target_os = "windows"))]
 use {std::ffi::OsStr, std::os::unix::ffi::OsStrExt};
 #[cfg(target_os = "windows")]
-use {std::ffi::OsString, std::os::windows::prelude::*};
+use {std::ffi::OsStr, std::ffi::OsString}; // std::os::windows::prelude::*,
 use std::path::{Path, PathBuf};
 
 use mime_guess;
@@ -378,28 +378,17 @@ impl DavPathRef {
     /// as OS specific Path, relative (remove first slash)
     ///
     /// Used to `push()` onto a pathbuf.
-    #[cfg(not(target_os = "windows"))]
     pub fn as_rel_ospath(&self) -> &Path {
         let spath = self.get_path();
         let mut path = if spath.len() > 0 { &spath[1..] } else { spath };
         if path.ends_with(b"/") {
             path = &path[..path.len() - 1];
         }
+        #[cfg(not(target_os = "windows"))] 
         let os_string = OsStr::from_bytes(path);
+        #[cfg(target_os = "windows")] 
+        let os_string : &OsStr = std::str::from_utf8(path).unwrap().as_ref();
         Path::new(os_string)
-    }
-    #[cfg(target_os = "windows")]
-    pub fn as_rel_ospath(&self) -> PathBuf {
-        let spath = self.get_path();
-        let mut path = if spath.len() > 0 { &spath[1..] } else { spath };
-        if path.ends_with(b"/") {
-            path = &path[..path.len() - 1];
-        }
-        // let os_string = OsStr::from_bytes(path);
-        // Path::new(os_string)
-        
-        // let os_string = OsString::from_wide(&std::str::from_utf8(path).unwrap().encode_utf16().collect::<Vec<u16>>());
-        PathBuf::from(std::str::from_utf8(path).unwrap())
     }
 
     // get parent.
