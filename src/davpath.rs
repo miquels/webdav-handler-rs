@@ -1,8 +1,11 @@
 //! Utility module to handle the path part of an URL as a filesytem path.
 //!
+//#![cfg_attr(target_os = "windows", allow(unused_imports))]
 use std::error::Error;
-use std::ffi::OsStr;
-use std::os::unix::ffi::OsStrExt;
+#[cfg(not(target_os = "windows"))]
+use {std::ffi::OsStr, std::os::unix::ffi::OsStrExt};
+#[cfg(target_os = "windows")]
+use {std::ffi::OsStr, std::ffi::OsString}; // std::os::windows::prelude::*,
 use std::path::{Path, PathBuf};
 
 use mime_guess;
@@ -339,7 +342,12 @@ impl DavPathRef {
         if b.len() > 1 && b.ends_with(b"/") {
             b = &b[..b.len() - 1];
         }
+
+        #[cfg(not(target_os = "windows"))]
         let os_string = OsStr::from_bytes(b).to_owned();
+        #[cfg(target_os = "windows")]
+        let os_string = OsString::from(String::from_utf8(b.to_vec()).unwrap());
+
         PathBuf::from(os_string)
     }
 
@@ -376,7 +384,10 @@ impl DavPathRef {
         if path.ends_with(b"/") {
             path = &path[..path.len() - 1];
         }
+        #[cfg(not(target_os = "windows"))] 
         let os_string = OsStr::from_bytes(path);
+        #[cfg(target_os = "windows")] 
+        let os_string : &OsStr = std::str::from_utf8(path).unwrap().as_ref();
         Path::new(os_string)
     }
 

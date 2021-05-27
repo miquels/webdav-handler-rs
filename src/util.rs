@@ -152,9 +152,9 @@ pub(crate) fn systemtime_to_offsetdatetime(t: SystemTime) -> time::OffsetDateTim
     match t.duration_since(UNIX_EPOCH) {
         Ok(t) => {
             let tm = time::OffsetDateTime::from_unix_timestamp(t.as_secs() as i64);
-            tm.to_offset(time::offset!(UTC))
+            tm.to_offset(time::UtcOffset::try_current_local_offset().unwrap())
         },
-        Err(_) => time::OffsetDateTime::unix_epoch().to_offset(time::offset!(UTC)),
+        Err(_) => time::OffsetDateTime::unix_epoch().to_offset(time::UtcOffset::try_current_local_offset().unwrap()),
     }
 }
 
