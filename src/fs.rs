@@ -228,7 +228,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn get_quota<'a>(&'a self) -> FsFuture<(u64, Option<u64>)> {
+    fn get_quota<'a>(&'a self, path: &'a DavPath) -> FsFuture<(u64, Option<u64>)> {
         notimplemented_fut!("get_quota`")
     }
 }
