@@ -630,8 +630,8 @@ impl PropWriter {
             _ => {},
         }
 
-        // if not "/", return for "used" just the size of this file/dir.
-        let used = if path.as_bytes() == b"/" {
+        // if not a folder, return for "used" just the size of this file.
+        let used = if meta.is_dir() {
             qc.q_used
         } else {
             meta.len()
