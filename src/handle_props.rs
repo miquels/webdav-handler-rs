@@ -614,7 +614,7 @@ impl PropWriter {
         // do lookup only once.
         match qc.q_state {
             0 => {
-                match self.fs.get_quota().await {
+                match self.fs.get_quota(path).await {
                     Err(e) => {
                         qc.q_state = 1;
                         return Err(e);
