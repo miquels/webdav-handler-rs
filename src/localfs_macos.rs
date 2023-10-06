@@ -9,6 +9,7 @@
 // - fake a ".ql_disablethumbnails" file in the root.
 //
 use std::ffi::OsString;
+use std::num::NonZeroUsize;
 use std::os::unix::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -78,7 +79,7 @@ impl DUCache {
             }
         });
         DUCache {
-            cache: Mutex::new(LruCache::new(size)),
+            cache: Mutex::new(LruCache::new(NonZeroUsize::new(size).unwrap())),
         }
     }
 
