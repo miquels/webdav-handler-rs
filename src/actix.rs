@@ -39,7 +39,6 @@ impl DavRequest {
 }
 
 impl FromRequest for DavRequest {
-    type Config = ();
     type Error = Error;
     type Future = future::Ready<Result<DavRequest, Error>>;
 
@@ -51,7 +50,7 @@ impl FromRequest for DavRequest {
         for (name, value) in req.headers().iter() {
             builder = builder.header(name, value);
         }
-        let path = req.match_info().path();
+        let path = req.match_info().as_str();
         let tail = req.match_info().unprocessed();
         let prefix = match &path[..path.len() - tail.len()] {
             "" | "/" => None,
@@ -122,6 +121,7 @@ impl From<http::Response<crate::body::Body>> for DavResponse {
 }
 
 impl actix_web::Responder for DavResponse {
+    type Body = actix_web::body::BoxBody;
 
     fn respond_to(self, _req: &HttpRequest) -> HttpResponse {
         use crate::body::{Body, BodyType};
