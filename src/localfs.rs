@@ -80,16 +80,16 @@ where
 }
 
 #[derive(Debug, Clone)]
-struct LocalFsMetaData(std::fs::Metadata);
+pub struct LocalFsMetaData(std::fs::Metadata);
 
 /// Local Filesystem implementation.
 #[derive(Clone)]
 pub struct LocalFs {
-    pub(crate) inner: Arc<LocalFsInner>,
+    pub inner: Arc<LocalFsInner>,
 }
 
 // inner struct.
-pub(crate) struct LocalFsInner {
+pub struct LocalFsInner {
     pub basedir:          PathBuf,
     pub public:           bool,
     pub case_insensitive: bool,
@@ -99,9 +99,9 @@ pub(crate) struct LocalFsInner {
 }
 
 #[derive(Debug)]
-struct LocalFsFile(Option<std::fs::File>);
+pub struct LocalFsFile(Option<std::fs::File>);
 
-struct LocalFsReadDir {
+pub struct LocalFsReadDir {
     fs:        LocalFs,
     do_meta:   ReadDirMeta,
     buffer:    VecDeque<io::Result<LocalFsDirEntry>>,
@@ -112,13 +112,13 @@ struct LocalFsReadDir {
 
 // a DirEntry either already has the metadata available, or a handle
 // to the filesystem so it can call fs.blocking()
-enum Meta {
+pub enum Meta {
     Data(io::Result<std::fs::Metadata>),
     Fs(LocalFs),
 }
 
 // Items from the readdir stream.
-struct LocalFsDirEntry {
+pub struct LocalFsDirEntry {
     meta:  Meta,
     entry: std::fs::DirEntry,
 }
@@ -430,14 +430,14 @@ impl DavFileSystem for LocalFs {
 }
 
 // read_batch() result.
-struct ReadDirBatch {
+pub struct ReadDirBatch {
     iterator: Option<std::fs::ReadDir>,
     buffer:   VecDeque<io::Result<LocalFsDirEntry>>,
 }
 
 // Read the next batch of LocalFsDirEntry structs (up to 256).
 // This is sync code, must be run in `blocking()`.
-fn read_batch(iterator: Option<std::fs::ReadDir>, fs: LocalFs, do_meta: ReadDirMeta) -> ReadDirBatch {
+pub fn read_batch(iterator: Option<std::fs::ReadDir>, fs: LocalFs, do_meta: ReadDirMeta) -> ReadDirBatch {
     let mut buffer = VecDeque::new();
     let mut iterator = match iterator {
         Some(i) => i,
@@ -548,7 +548,7 @@ impl<'a> Stream for LocalFsReadDir {
     }
 }
 
-enum Is {
+pub enum Is {
     File,
     Dir,
     Symlink,
