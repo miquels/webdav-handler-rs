@@ -77,6 +77,7 @@ impl DUCache {
                 }
             }
         });
+        let size = std::num::NonZeroUsize::new(if size == 0 { 1 } else { size }).unwrap();
         DUCache {
             cache: Mutex::new(LruCache::new(size)),
         }

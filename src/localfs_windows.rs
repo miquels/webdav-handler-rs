@@ -202,6 +202,7 @@ impl Cache {
                 }
             }
         });
+        let size = std::num::NonZeroUsize::new(if size == 0 { 1 } else { size }).unwrap();
         Cache {
             cache: Mutex::new(LruCache::new(size)),
         }
