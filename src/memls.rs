@@ -6,7 +6,6 @@
 //! This means you have to create the instance once, using `MemLs::new`, store
 //! it in your handler struct, and clone() it every time you pass
 //! it to the DavHandler. As a MemLs struct is just a handle, cloning is cheap.
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
@@ -27,7 +26,6 @@ pub struct MemLs(Arc<Mutex<MemLsInner>>);
 #[derive(Debug)]
 struct MemLsInner {
     tree:  Tree,
-    locks: HashMap<Vec<u8>, u64>,
 }
 
 impl MemLs {
@@ -35,7 +33,6 @@ impl MemLs {
     pub fn new() -> Box<MemLs> {
         let inner = MemLsInner {
             tree:  Tree::new(Vec::new()),
-            locks: HashMap::new(),
         };
         Box::new(MemLs(Arc::new(Mutex::new(inner))))
     }
