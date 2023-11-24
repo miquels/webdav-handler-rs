@@ -607,13 +607,19 @@ impl PropWriter {
     async fn get_quota<'a>(
         &'a self,
         qc: &'a mut QuotaCache,
-        path: &'a DavPath,
+        _path: &'a DavPath,
         meta: &'a dyn DavMetaData,
     ) -> FsResult<(u64, Option<u64>)>
     {
+        // only on collections.
+        if !meta.is_dir() {
+            return Err(FsError::NotFound);
+        }
+
         // do lookup only once.
         match qc.q_state {
             0 => {
+                // FIXME: get_quota should take a path.
                 match self.fs.get_quota().await {
                     Err(e) => {
                         qc.q_state = 1;
@@ -630,19 +636,12 @@ impl PropWriter {
             _ => {},
         }
 
-        // if not "/", return for "used" just the size of this file/dir.
-        let used = if path.as_bytes() == b"/" {
-            qc.q_used
-        } else {
-            meta.len()
-        };
-
         // calculate available space.
         let avail = match qc.q_total {
             None => None,
-            Some(total) => Some(if total > used { total - used } else { 0 }),
+            Some(total) => Some(if total > qc.q_used { total - qc.q_used } else { 0 }),
         };
-        Ok((used, avail))
+        Ok((qc.q_used, avail))
     }
 
     async fn build_prop<'a>(
