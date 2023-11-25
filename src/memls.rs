@@ -70,7 +70,7 @@ impl DavLockSystem for MemLs {
             Some(d) => Some(SystemTime::now() + d),
         };
         let lock = DavLock {
-            token:      Uuid::new_v4().to_urn().to_string(),
+            token:      Uuid::new_v4().urn().to_string(),
             path:       path.clone(),
             principal:  principal.map(|s| s.to_string()),
             owner:      owner.cloned(),
