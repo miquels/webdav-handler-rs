@@ -149,13 +149,13 @@ pub(crate) fn dav_xml_error(body: &str) -> Body {
 }
 
 pub(crate) fn systemtime_to_offsetdatetime(t: SystemTime) -> time::OffsetDateTime {
-    match t.duration_since(UNIX_EPOCH) {
-        Ok(t) => {
-            let tm = time::OffsetDateTime::from_unix_timestamp(t.as_secs() as i64);
-            tm.to_offset(time::offset!(UTC))
-        },
-        Err(_) => time::OffsetDateTime::unix_epoch().to_offset(time::offset!(UTC)),
+    if let Ok(t) = t.duration_since(UNIX_EPOCH) {
+        if let Ok(tm) = time::OffsetDateTime::from_unix_timestamp(t.as_secs() as i64) {
+            return tm;
+        }
     }
+    // If we fail, return the epoch, 1970-01-01.
+    return time::OffsetDateTime::from_unix_timestamp(0i64).unwrap()
 }
 
 pub(crate) fn systemtime_to_httpdate(t: SystemTime) -> String {
@@ -167,7 +167,9 @@ pub(crate) fn systemtime_to_httpdate(t: SystemTime) -> String {
 
 pub(crate) fn systemtime_to_rfc3339(t: SystemTime) -> String {
     // 1996-12-19T16:39:57Z
-    systemtime_to_offsetdatetime(t).format("%FT%H:%M:%SZ")
+    use time::format_description::well_known::Rfc3339;
+    systemtime_to_offsetdatetime(t).format(&Rfc3339)
+        .unwrap_or("1970-01-01T00:00:00Z".into())
 }
 
 // A buffer that implements "Write".
