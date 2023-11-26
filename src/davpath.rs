@@ -23,25 +23,14 @@ pub struct DavPathRef {
     fullpath: [u8],
 }
 
-#[derive(Copy, Clone, Debug)]
-#[allow(non_camel_case_types)]
-struct ENCODE_SET;
-
-impl pct::EncodeSet for ENCODE_SET {
-    // Encode all non-unreserved characters, except '/'.
-    // See RFC3986, and https://en.wikipedia.org/wiki/Percent-encoding .
-    #[inline]
-    fn contains(&self, byte: u8) -> bool {
-        let unreserved = (byte >= b'A' && byte <= b'Z') ||
-            (byte >= b'a' && byte <= b'z') ||
-            (byte >= b'0' && byte <= b'9') ||
-            byte == b'-' ||
-            byte == b'_' ||
-            byte == b'.' ||
-            byte == b'~';
-        !unreserved && byte != b'/'
-    }
-}
+// Encode all non-unreserved characters, except '/'.
+// See RFC3986, and https://en.wikipedia.org/wiki/Percent-encoding .
+const ENCODE_SET: pct::AsciiSet = pct::NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'.')
+    .remove(b'/')
+    .remove(b'_')
+    .remove(b'~');
 
 impl std::fmt::Display for DavPath {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -102,7 +91,7 @@ fn valid_segment(src: &[u8]) -> Result<(), ParseError> {
 
 // encode path segment with user-defined ENCODE_SET
 fn encode_path(src: &[u8]) -> Vec<u8> {
-    pct::percent_encode(src, ENCODE_SET).to_string().into_bytes()
+    pct::percent_encode(src, &ENCODE_SET).to_string().into_bytes()
 }
 
 // make path safe:
