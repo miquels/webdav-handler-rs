@@ -1,8 +1,6 @@
 use std::io::{Cursor, Write};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use bytes::Bytes;
-use headers::Header;
 use http::method::InvalidMethod;
 
 use crate::body::Body;
@@ -146,30 +144,6 @@ pub(crate) fn dav_xml_error(body: &str) -> Body {
         r#"<?xml version="1.0" encoding="utf-8" ?>"#, r#"<D:error xmlns:D="DAV:">"#, body, r#"</D:error>"#
     );
     Body::from(xml)
-}
-
-pub(crate) fn systemtime_to_offsetdatetime(t: SystemTime) -> time::OffsetDateTime {
-    if let Ok(t) = t.duration_since(UNIX_EPOCH) {
-        if let Ok(tm) = time::OffsetDateTime::from_unix_timestamp(t.as_secs() as i64) {
-            return tm;
-        }
-    }
-    // If we fail, return the epoch, 1970-01-01.
-    return time::OffsetDateTime::from_unix_timestamp(0i64).unwrap()
-}
-
-pub(crate) fn systemtime_to_httpdate(t: SystemTime) -> String {
-    let d = headers::Date::from(t);
-    let mut v = Vec::new();
-    d.encode(&mut v);
-    v[0].to_str().unwrap().to_owned()
-}
-
-pub(crate) fn systemtime_to_rfc3339(t: SystemTime) -> String {
-    // 1996-12-19T16:39:57Z
-    use time::format_description::well_known::Rfc3339;
-    systemtime_to_offsetdatetime(t).format(&Rfc3339)
-        .unwrap_or("1970-01-01T00:00:00Z".into())
 }
 
 // A buffer that implements "Write".

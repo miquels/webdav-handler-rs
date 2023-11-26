@@ -24,8 +24,8 @@ use crate::errors::*;
 use crate::fs::*;
 use crate::handle_lock::{list_lockdiscovery, list_supportedlock};
 use crate::ls::*;
-use crate::util::MemBuffer;
-use crate::util::{dav_xml_error, systemtime_to_httpdate, systemtime_to_rfc3339};
+use crate::time::{systemtime_to_httpdate, systemtime_to_rfc3339};
+use crate::util::{MemBuffer, dav_xml_error};
 use crate::{DavInner, DavResult};
 
 const NS_APACHE_URI: &'static str = "http://apache.org/dav/props/";

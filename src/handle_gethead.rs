@@ -16,7 +16,7 @@ use crate::davheaders;
 use crate::davpath::DavPath;
 use crate::errors::*;
 use crate::fs::*;
-use crate::util::systemtime_to_offsetdatetime;
+use crate::time::systemtime_to_localtime;
 use crate::DavMethod;
 
 struct Range {
@@ -284,6 +284,7 @@ impl crate::DavInner {
         if head {
             return Ok(res);
         }
+        let utcoffset = self.utcoffset;
 
         // now just loop and send data.
         *res.body_mut() = Body::from(AsyncStream::new(|mut tx| {
@@ -386,20 +387,9 @@ impl crate::DavInner {
                 tx.send(Bytes::from(w)).await;
 
                 for dirent in &dirents {
-                    let modified = match dirent.meta.modified() {
-                        Ok(t) => {
-                            let tm = systemtime_to_offsetdatetime(t);
-                            format!(
-                                "{:04}-{:02}-{:02} {:02}:{:02}",
-                                tm.year(),
-                                tm.month(),
-                                tm.day(),
-                                tm.hour(),
-                                tm.minute(),
-                            )
-                        },
-                        Err(_) => "".to_string(),
-                    };
+                    let modified = dirent.meta.modified()
+                        .map(|t| systemtime_to_localtime(t, utcoffset))
+                        .unwrap_or("".to_string());
                     let size = match dirent.meta.is_file() {
                         true => display_size(dirent.meta.len()),
                         false => "[DIR]    ".to_string(),

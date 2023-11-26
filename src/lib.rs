@@ -159,6 +159,7 @@ pub mod localfs;
 pub mod ls;
 pub mod memfs;
 pub mod memls;
+pub mod time;
 
 #[cfg(any(docsrs, feature = "actix-compat"))]
 #[cfg_attr(docsrs, doc(cfg(feature = "actix-compat")))]

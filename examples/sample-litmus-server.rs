@@ -17,7 +17,8 @@ use hyper;
 
 use headers::{authorization::Basic, Authorization, HeaderMapExt};
 
-use webdav_handler::{body::Body, fakels, localfs, memfs, memls, DavConfig, DavHandler};
+use webdav_handler::{fakels, localfs, memfs, memls, DavConfig, DavHandler};
+use webdav_handler::{body::Body, time::UtcOffset};
 
 #[derive(Clone)]
 struct Server {
@@ -29,7 +30,10 @@ impl Server {
     pub fn new(directory: String, memls: bool, fakels: bool, auth: bool) -> Self {
         let mut config = DavHandler::builder();
         if directory != "" {
-            config = config.filesystem(localfs::LocalFs::new(directory, true, true, true));
+            let utctime = time::UtcOffset::current_local_offset().map(UtcOffset::from).ok();
+            config = config
+                .filesystem(localfs::LocalFs::new(directory, true, true, true))
+                .autoindex(true, utctime);
         } else {
             config = config.filesystem(memfs::MemFs::new());
         };
@@ -96,7 +100,7 @@ struct Args {
     auth:   bool,
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 

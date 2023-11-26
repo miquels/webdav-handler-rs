@@ -20,6 +20,7 @@ use crate::util::{dav_method, DavMethod, DavMethodSet};
 use crate::errors::DavError;
 use crate::fs::*;
 use crate::ls::*;
+use crate::time::UtcOffset;
 use crate::voidfs::{is_voidfs, VoidFs};
 use crate::DavResult;
 
@@ -51,6 +52,8 @@ pub struct DavConfig {
     pub(crate) hide_symlinks: Option<bool>,
     // Does GET on a directory return indexes.
     pub(crate) autoindex:     Option<bool>,
+    // Localtime for directory indexes
+    pub(crate) utcoffset:     Option<UtcOffset>,
     // index.html
     pub(crate) indexfile:     Option<String>,
 }
@@ -112,9 +115,13 @@ impl DavConfig {
     }
 
     /// Does a GET on a directory produce a directory index.
-    pub fn autoindex(self, autoindex: bool) -> Self {
+    ///
+    /// If you want the timestamp of the files to be in the local
+    /// timezone, pass in the `UtcOffset` struct.
+    pub fn autoindex(self, autoindex: bool, utc_offset: Option<UtcOffset>) -> Self {
         let mut this = self;
         this.autoindex = Some(autoindex);
+        this.utcoffset = utc_offset;
         this
     }
 
@@ -134,6 +141,7 @@ impl DavConfig {
             principal:     new.principal.or(self.principal.clone()),
             hide_symlinks: new.hide_symlinks.or(self.hide_symlinks.clone()),
             autoindex:     new.autoindex.or(self.autoindex.clone()),
+            utcoffset:     new.utcoffset,
             indexfile:     new.indexfile.or(self.indexfile.clone()),
         }
     }
@@ -151,6 +159,7 @@ pub(crate) struct DavInner {
     pub principal:     Option<String>,
     pub hide_symlinks: Option<bool>,
     pub autoindex:     Option<bool>,
+    pub utcoffset:     Option<UtcOffset>,
     pub indexfile:     Option<String>,
 }
 
@@ -164,6 +173,7 @@ impl From<DavConfig> for DavInner {
             principal:     cfg.principal,
             hide_symlinks: cfg.hide_symlinks,
             autoindex:     cfg.autoindex,
+            utcoffset:     cfg.utcoffset,
             indexfile:     cfg.indexfile,
         }
     }
@@ -183,6 +193,7 @@ impl From<&DavConfig> for DavInner {
             principal:     cfg.principal.clone(),
             hide_symlinks: cfg.hide_symlinks.clone(),
             autoindex:     cfg.autoindex.clone(),
+            utcoffset:     cfg.utcoffset,
             indexfile:     cfg.indexfile.clone(),
         }
     }
@@ -198,6 +209,7 @@ impl Clone for DavInner {
             principal:     self.principal.clone(),
             hide_symlinks: self.hide_symlinks.clone(),
             autoindex:     self.autoindex.clone(),
+            utcoffset:     self.utcoffset,
             indexfile:     self.indexfile.clone(),
         }
     }
