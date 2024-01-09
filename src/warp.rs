@@ -8,7 +8,7 @@
 use std::convert::Infallible;
 use std::path::Path;
 
-use crate::{fakels::FakeLs, localfs::LocalFs, DavHandler};
+use crate::{fakels::FakeLs, localfs::LocalFs, time::UtcOffset, DavHandler};
 use warp::{filters::BoxedFilter, Filter, Reply};
 
 /// Reply-filter that runs a DavHandler.
@@ -16,9 +16,8 @@ use warp::{filters::BoxedFilter, Filter, Reply};
 /// Just pass in a pre-configured DavHandler. If a prefix was not
 /// configured, it will be the request path up to this point.
 pub fn dav_handler(handler: DavHandler) -> BoxedFilter<(impl Reply,)> {
-    use http::header::HeaderMap;
-    use http::uri::Uri;
-    use http::Response;
+    use warp::http::header::HeaderMap;
+    use warp::http::Method;
     use warp::path::{FullPath, Tail};
 
     warp::method()
@@ -27,16 +26,16 @@ pub fn dav_handler(handler: DavHandler) -> BoxedFilter<(impl Reply,)> {
         .and(warp::header::headers_cloned())
         .and(warp::body::stream())
         .and_then(
-            move |method, path_full: FullPath, path_tail: Tail, headers: HeaderMap, body| {
+            move |method: Method, path_full: FullPath, path_tail: Tail, headers: HeaderMap, body| {
                 let handler = handler.clone();
 
                 async move {
                     // rebuild an http::Request struct.
                     let path_str = path_full.as_str();
-                    let uri = path_str.parse::<Uri>().unwrap();
-                    let mut builder = http::Request::builder().method(method).uri(uri);
+                    let uri = path_str.parse::<http::uri::Uri>().unwrap();
+                    let mut builder = http::Request::builder().method(method.as_str()).uri(uri);
                     for (k, v) in headers.iter() {
-                        builder = builder.header(k, v);
+                        builder = builder.header(k.as_str(), v.as_ref());
                     }
                     let request = builder.body(body).unwrap();
 
@@ -54,7 +53,26 @@ pub fn dav_handler(handler: DavHandler) -> BoxedFilter<(impl Reply,)> {
 
                     // Need to remap the http_body::Body to a hyper::Body.
                     let (parts, body) = response.into_parts();
-                    let response = Response::from_parts(parts, hyper::Body::wrap_stream(body));
+
+                    let http_version = match parts.version {
+                        http::Version::HTTP_09 => Some(warp::http::Version::HTTP_09),
+                        http::Version::HTTP_10 => Some(warp::http::Version::HTTP_10),
+                        http::Version::HTTP_11 => Some(warp::http::Version::HTTP_11),
+                        http::Version::HTTP_2 => Some(warp::http::Version::HTTP_2),
+                        http::Version::HTTP_3 => Some(warp::http::Version::HTTP_3),
+                        _ => None,
+                    };
+                    let response = match http_version {
+                        Some(http_version) => warp::http::response::Response::builder()
+                            .status(parts.status.as_u16())
+                            .version(http_version)
+                            .body(warp::hyper::Body::wrap_stream(body))
+                            .unwrap(),
+                        None => warp::http::response::Response::builder()
+                            .status(warp::http::StatusCode::INTERNAL_SERVER_ERROR)
+                            .body(warp::hyper::Body::empty())
+                            .unwrap(),
+                    };
                     Ok::<_, Infallible>(response)
                 }
             },
@@ -71,11 +89,16 @@ pub fn dav_handler(handler: DavHandler) -> BoxedFilter<(impl Reply,)> {
 /// - `index_html`: if an `index.html` file is found, serve it.
 /// - `auto_index`: create a directory listing.
 /// - no flags set: 404.
-pub fn dav_dir(base: impl AsRef<Path>, index_html: bool, auto_index: bool) -> BoxedFilter<(impl Reply,)> {
+pub fn dav_dir(
+    base: impl AsRef<Path>,
+    index_html: bool,
+    auto_index: bool,
+    utc_offset: Option<UtcOffset>,
+) -> BoxedFilter<(impl Reply,)> {
     let mut builder = DavHandler::builder()
         .filesystem(LocalFs::new(base, false, false, false))
         .locksystem(FakeLs::new())
-        .autoindex(auto_index);
+        .autoindex(auto_index, utc_offset);
     if index_html {
         builder = builder.indexfile("index.html".to_string())
     }

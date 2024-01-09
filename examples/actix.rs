@@ -1,5 +1,6 @@
 use std::io;
 
+use actix_web::web::Data;
 use actix_web::{web, App, HttpServer};
 use webdav_handler::actix::*;
 use webdav_handler::{fakels::FakeLs, localfs::LocalFs, DavConfig, DavHandler};
@@ -28,7 +29,7 @@ async fn main() -> io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .data(dav_server.clone())
+            .app_data(Data::new(dav_server.clone()))
             .service(web::resource("/{tail:.*}").to(dav_handler))
     })
     .bind(addr)?

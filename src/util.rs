@@ -174,7 +174,7 @@ impl Write for MemBuffer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::time::systemtime_to_rfc3339;
     use std::time::UNIX_EPOCH;
 
     #[test]

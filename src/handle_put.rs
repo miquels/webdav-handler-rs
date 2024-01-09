@@ -7,6 +7,7 @@ use headers::HeaderMapExt;
 use http::StatusCode as SC;
 use http::{self, Request, Response};
 use http_body::Body as HttpBody;
+use http_body_util::BodyExt as _;
 
 use crate::body::Body;
 use crate::conditional::if_match_get_tokens;
@@ -25,28 +26,26 @@ const SABRE: &'static str = "application/x-sabredav-partialupdate";
 // Also, this is senseless. It's not as if we _do_ anything with the
 // io::Error, other than noticing "oops an error occured".
 fn to_ioerror<E>(err: E) -> io::Error
-where E: StdError + Sync + Send + 'static {
+where
+    E: StdError + Sync + Send + 'static,
+{
     let e = &err as &dyn Any;
     if e.is::<io::Error>() || e.is::<Box<io::Error>>() {
         let err = Box::new(err) as Box<dyn Any>;
         match err.downcast::<io::Error>() {
             Ok(e) => *e,
-            Err(e) => {
-                match e.downcast::<Box<io::Error>>() {
-                    Ok(e) => *(*e),
-                    Err(_) => io::ErrorKind::Other.into(),
-                }
+            Err(e) => match e.downcast::<Box<io::Error>>() {
+                Ok(e) => *(*e),
+                Err(_) => io::ErrorKind::Other.into(),
             },
         }
     } else if e.is::<DavError>() || e.is::<Box<DavError>>() {
         let err = Box::new(err) as Box<dyn Any>;
         match err.downcast::<DavError>() {
             Ok(e) => (*e).into(),
-            Err(e) => {
-                match e.downcast::<Box<DavError>>() {
-                    Ok(e) => (*(*e)).into(),
-                    Err(_) => io::ErrorKind::Other.into(),
-                }
+            Err(e) => match e.downcast::<Box<DavError>>() {
+                Ok(e) => (*(*e)).into(),
+                Err(_) => io::ErrorKind::Other.into(),
             },
         }
     } else {
@@ -211,24 +210,25 @@ impl crate::DavInner {
         // loop, read body, write to file.
         let mut total = 0u64;
 
-        while let Some(data) = body.data().await {
-            let mut buf = data.map_err(|e| to_ioerror(e))?;
-            let buflen = buf.remaining();
-            total += buflen as u64;
-            // consistency check.
-            if have_count && total > count {
-                break;
-            }
-            // The `Buf` might actually be a `Bytes`.
-            let b = {
-                let b: &mut dyn std::any::Any = &mut buf;
-                b.downcast_mut::<Bytes>()
-            };
-            if let Some(bytes) = b {
-                let bytes = std::mem::replace(bytes, Bytes::new());
-                file.write_bytes(bytes).await?;
-            } else {
-                file.write_buf(Box::new(buf)).await?;
+        while let Some(frame) = body.frame().await {
+            if let Ok(mut buf) = frame.map_err(|e| to_ioerror(e))?.into_data() {
+                let buflen = buf.remaining();
+                total += buflen as u64;
+                // consistency check.
+                if have_count && total > count {
+                    break;
+                }
+                // The `Buf` might actually be a `Bytes`.
+                let b = {
+                    let b: &mut dyn std::any::Any = &mut buf;
+                    b.downcast_mut::<Bytes>()
+                };
+                if let Some(bytes) = b {
+                    let bytes = std::mem::replace(bytes, Bytes::new());
+                    file.write_bytes(bytes).await?;
+                } else {
+                    file.write_buf(Box::new(buf)).await?;
+                }
             }
         }
         file.flush().await?;
