@@ -11,6 +11,7 @@ use futures::stream::Stream;
 use headers::HeaderMapExt;
 use http::{Request, Response, StatusCode};
 use http_body::Body as HttpBody;
+use http_body_util::BodyExt;
 
 use crate::body::{Body, StreamBody};
 use crate::davheaders;
@@ -348,18 +349,22 @@ impl DavInner {
     {
         let mut data = Vec::new();
         pin_utils::pin_mut!(body);
-        while let Some(res) = body.data().await {
-            let mut buf = res.map_err(|_| {
-                DavError::IoError(io::Error::new(io::ErrorKind::UnexpectedEof, "UnexpectedEof"))
-            })?;
-            while buf.has_remaining() {
-                if data.len() + buf.remaining() > max_size {
-                    return Err(StatusCode::PAYLOAD_TOO_LARGE.into());
+        while let Some(frame) = body.frame().await {
+            if let Ok(mut buf) = frame
+                .map_err(|_| {
+                    DavError::IoError(io::Error::new(io::ErrorKind::UnexpectedEof, "UnexpectedEof"))
+                })?
+                .into_data()
+            {
+                while buf.has_remaining() {
+                    if data.len() + buf.remaining() > max_size {
+                        return Err(StatusCode::PAYLOAD_TOO_LARGE.into());
+                    }
+                    let b = buf.chunk();
+                    let l = b.len();
+                    data.extend_from_slice(b);
+                    buf.advance(l);
                 }
-                let b = buf.chunk();
-                let l = b.len();
-                data.extend_from_slice(b);
-                buf.advance(l);
             }
         }
         Ok(data)

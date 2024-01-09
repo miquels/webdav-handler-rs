@@ -8,6 +8,6 @@ async fn main() {
     let addr: SocketAddr = ([127, 0, 0, 1], 4918).into();
 
     println!("warp example: listening on {:?} serving {}", addr, dir);
-    let warpdav = dav_dir(dir, true, true);
+    let warpdav = dav_dir(dir, true, true, None);
     warp::serve(warpdav).run(addr).await;
 }

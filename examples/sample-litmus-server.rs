@@ -12,8 +12,9 @@ use std::str::FromStr;
 
 use clap::Parser;
 use env_logger;
-use futures::future::TryFutureExt;
-use hyper;
+use hyper::service::service_fn;
+use hyper_util::rt::{TokioExecutor, TokioIo};
+use tokio::net::TcpListener;
 
 use headers::{authorization::Basic, Authorization, HeaderMapExt};
 
@@ -50,7 +51,10 @@ impl Server {
         }
     }
 
-    async fn handle(&self, req: hyper::Request<hyper::Body>) -> Result<hyper::Response<Body>, Infallible> {
+    async fn handle(
+        &self,
+        req: hyper::Request<hyper::body::Incoming>,
+    ) -> Result<hyper::Response<Body>, Infallible> {
         let user = if self.auth {
             // we want the client to authenticate.
             match req.headers().typed_get::<Authorization<Basic>>() {
@@ -113,27 +117,30 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let memls = args.memfs || args.memls;
     let fakels = args.fakels;
     let auth = args.auth;
-
-    let dav_server = Server::new(dir.to_string(), memls, fakels, auth);
-    let make_service = hyper::service::make_service_fn(|_| {
-        let dav_server = dav_server.clone();
-        async move {
-            let func = move |req| {
-                let dav_server = dav_server.clone();
-                async move { dav_server.clone().handle(req).await }
-            };
-            Ok::<_, hyper::Error>(hyper::service::service_fn(func))
-        }
-    });
-
     let addr = format!("0.0.0.0:{}", args.port);
     let addr = SocketAddr::from_str(&addr)?;
+    let dav_server = Server::new(dir.to_string(), memls, fakels, auth);
 
-    let server = hyper::Server::try_bind(&addr)?
-        .serve(make_service)
-        .map_err(|e| eprintln!("server error: {}", e));
-
+    let listener = TcpListener::bind(addr).await?;
     println!("Serving {} on {}", name, args.port);
-    let _ = server.await;
-    Ok(())
+
+    loop {
+        let (stream, _) = listener.accept().await?;
+        let io = TokioIo::new(stream);
+        let dav_server = dav_server.clone();
+        tokio::task::spawn(async move {
+            if let Err(err) = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
+                .serve_connection(
+                    io,
+                    service_fn(move |req| {
+                        let dav_server = dav_server.clone();
+                        async move { dav_server.handle(req).await }
+                    }),
+                )
+                .await
+            {
+                println!("Error serving connection: {:?}", err);
+            }
+        });
+    }
 }
