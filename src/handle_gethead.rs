@@ -414,19 +414,19 @@ impl crate::DavInner {
 }
 
 fn display_size(size: u64) -> String {
-    if size <= 1000 {
-        return format!("{}    ", size);
+    if size < 1024 {
+        return format!("{} B", size);
     }
-    if size <= 1_000_000 {
-        return format!("{} KiB", ((size / 10) as f64) / 100f64);
+    if size < 1024 * 1024 {
+        return format!("{:.2} KiB", size as f64 / 1024f64);
     }
-    if size <= 1_000_000_000 {
-        return format!("{} MiB", ((size / 10_000) as f64) / 100f64);
+    if size < 1024 * 1024 * 1024 {
+        return format!("{:.2} MiB", size as f64 / (1024 * 1024) as f64);
     }
-    if size <= 1_000_000_000_000 {
-        return format!("{} GiB", ((size / 10_000_000) as f64) / 100f64);
+    if size < 1024 * 1024 * 1024 * 1024 {
+        return format!("{:.2} GiB", size as f64 / (1024 * 1024 * 1024) as f64);
     }
-    format!("{:2}TiB", ((size / 10_000_000_000) as f64) / 100f64)
+    format!("{:.2} TiB", size as f64 / (1024 * 1024 * 1024 * 1024) as f64)
 }
 
 fn display_path(path: &DavPath) -> String {
