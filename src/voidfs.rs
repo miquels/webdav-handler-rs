@@ -20,7 +20,7 @@ impl VoidFs {
 }
 
 impl DavFileSystem for VoidFs {
-    fn metadata<'a>(&'a self, _path: &'a DavPath) -> FsFuture<Box<dyn DavMetaData>> {
+    fn metadata<'a>(&'a self, _path: &'a DavPath) -> FsFuture<'a, Box<dyn DavMetaData>> {
         Box::pin(async { Err(FsError::NotImplemented) })
     }
 
@@ -28,12 +28,12 @@ impl DavFileSystem for VoidFs {
         &'a self,
         _path: &'a DavPath,
         _meta: ReadDirMeta,
-    ) -> FsFuture<FsStream<Box<dyn DavDirEntry>>>
+    ) -> FsFuture<'a, FsStream<Box<dyn DavDirEntry>>>
     {
         Box::pin(async { Err(FsError::NotImplemented) })
     }
 
-    fn open<'a>(&'a self, _path: &'a DavPath, _options: OpenOptions) -> FsFuture<Box<dyn DavFile>> {
+    fn open<'a>(&'a self, _path: &'a DavPath, _options: OpenOptions) -> FsFuture<'a, Box<dyn DavFile>> {
         Box::pin(async { Err(FsError::NotImplemented) })
     }
 }

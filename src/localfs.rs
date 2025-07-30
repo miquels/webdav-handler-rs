@@ -232,7 +232,7 @@ impl LocalFs {
 // This implementation is basically a bunch of boilerplate to
 // wrap the std::fs call in self.blocking() calls.
 impl DavFileSystem for LocalFs {
-    fn metadata<'a>(&'a self, davpath: &'a DavPath) -> FsFuture<Box<dyn DavMetaData>> {
+    fn metadata<'a>(&'a self, davpath: &'a DavPath) -> FsFuture<'a, Box<dyn DavMetaData>> {
         async move {
             if let Some(meta) = self.is_virtual(davpath) {
                 return Ok(meta);
@@ -252,7 +252,7 @@ impl DavFileSystem for LocalFs {
         .boxed()
     }
 
-    fn symlink_metadata<'a>(&'a self, davpath: &'a DavPath) -> FsFuture<Box<dyn DavMetaData>> {
+    fn symlink_metadata<'a>(&'a self, davpath: &'a DavPath) -> FsFuture<'a, Box<dyn DavMetaData>> {
         async move {
             if let Some(meta) = self.is_virtual(davpath) {
                 return Ok(meta);
@@ -278,7 +278,7 @@ impl DavFileSystem for LocalFs {
         &'a self,
         davpath: &'a DavPath,
         meta: ReadDirMeta,
-    ) -> FsFuture<FsStream<Box<dyn DavDirEntry>>>
+    ) -> FsFuture<'a, FsStream<Box<dyn DavDirEntry>>>
     {
         async move {
             trace!("FS: read_dir {:?}", self.fspath_dbg(davpath));
@@ -303,7 +303,7 @@ impl DavFileSystem for LocalFs {
         .boxed()
     }
 
-    fn open<'a>(&'a self, path: &'a DavPath, options: OpenOptions) -> FsFuture<Box<dyn DavFile>> {
+    fn open<'a>(&'a self, path: &'a DavPath, options: OpenOptions) -> FsFuture<'a, Box<dyn DavFile>> {
         async move {
             trace!("FS: open {:?}", self.fspath_dbg(path));
             if self.is_forbidden(path) {
@@ -331,7 +331,7 @@ impl DavFileSystem for LocalFs {
         .boxed()
     }
 
-    fn create_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<()> {
+    fn create_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
         async move {
             trace!("FS: create_dir {:?}", self.fspath_dbg(path));
             if self.is_forbidden(path) {
@@ -350,7 +350,7 @@ impl DavFileSystem for LocalFs {
         .boxed()
     }
 
-    fn remove_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<()> {
+    fn remove_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
         async move {
             trace!("FS: remove_dir {:?}", self.fspath_dbg(path));
             let path = self.fspath(path);
@@ -360,7 +360,7 @@ impl DavFileSystem for LocalFs {
         .boxed()
     }
 
-    fn remove_file<'a>(&'a self, path: &'a DavPath) -> FsFuture<()> {
+    fn remove_file<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
         async move {
             trace!("FS: remove_file {:?}", self.fspath_dbg(path));
             if self.is_forbidden(path) {
@@ -373,7 +373,7 @@ impl DavFileSystem for LocalFs {
         .boxed()
     }
 
-    fn rename<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<()> {
+    fn rename<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<'a, ()> {
         async move {
             trace!("FS: rename {:?} {:?}", self.fspath_dbg(from), self.fspath_dbg(to));
             if self.is_forbidden(from) || self.is_forbidden(to) {
@@ -403,7 +403,7 @@ impl DavFileSystem for LocalFs {
         .boxed()
     }
 
-    fn copy<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<()> {
+    fn copy<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<'a, ()> {
         async move {
             trace!("FS: copy {:?} {:?}", self.fspath_dbg(from), self.fspath_dbg(to));
             if self.is_forbidden(from) || self.is_forbidden(to) {
@@ -519,7 +519,7 @@ impl<'a> Stream for LocalFsReadDir {
                     this.fut.take();
                     if let Some(ref mut nb) = this.dir_cache {
                         for e in &batch.buffer {
-                            if let Ok(ref e) = e {
+                            if let Ok(e) = e {
                                 nb.add(e.entry.file_name());
                             }
                         }
@@ -582,7 +582,7 @@ impl LocalFsDirEntry {
 }
 
 impl DavDirEntry for LocalFsDirEntry {
-    fn metadata<'a>(&'a self) -> FsFuture<Box<dyn DavMetaData>> {
+    fn metadata<'a>(&'a self) -> FsFuture<'a, Box<dyn DavMetaData>> {
         match self.meta {
             Meta::Data(ref meta) => {
                 let m = match meta {
@@ -608,21 +608,21 @@ impl DavDirEntry for LocalFsDirEntry {
         self.entry.file_name().as_bytes().to_vec()
     }
 
-    fn is_dir<'a>(&'a self) -> FsFuture<bool> {
+    fn is_dir<'a>(&'a self) -> FsFuture<'a, bool> {
         Box::pin(self.is_a(Is::Dir))
     }
 
-    fn is_file<'a>(&'a self) -> FsFuture<bool> {
+    fn is_file<'a>(&'a self) -> FsFuture<'a, bool> {
         Box::pin(self.is_a(Is::File))
     }
 
-    fn is_symlink<'a>(&'a self) -> FsFuture<bool> {
+    fn is_symlink<'a>(&'a self) -> FsFuture<'a, bool> {
         Box::pin(self.is_a(Is::Symlink))
     }
 }
 
 impl DavFile for LocalFsFile {
-    fn metadata<'a>(&'a mut self) -> FsFuture<Box<dyn DavMetaData>> {
+    fn metadata<'a>(&'a mut self) -> FsFuture<'a, Box<dyn DavMetaData>> {
         async move {
             let file = self.0.take().unwrap();
             let (meta, file) = blocking(move || (file.metadata(), file)).await;
@@ -632,7 +632,7 @@ impl DavFile for LocalFsFile {
         .boxed()
     }
 
-    fn write_bytes<'a>(&'a mut self, buf: Bytes) -> FsFuture<()> {
+    fn write_bytes<'a>(&'a mut self, buf: Bytes) -> FsFuture<'a, ()> {
         async move {
             let mut file = self.0.take().unwrap();
             let (res, file) = blocking(move || (file.write_all(&buf), file)).await;
@@ -642,7 +642,7 @@ impl DavFile for LocalFsFile {
         .boxed()
     }
 
-    fn write_buf<'a>(&'a mut self, mut buf: Box<dyn Buf + Send>) -> FsFuture<()> {
+    fn write_buf<'a>(&'a mut self, mut buf: Box<dyn Buf + Send>) -> FsFuture<'a, ()> {
         async move {
             let mut file = self.0.take().unwrap();
             let (res, file) = blocking(move || {
@@ -662,7 +662,7 @@ impl DavFile for LocalFsFile {
         .boxed()
     }
 
-    fn read_bytes<'a>(&'a mut self, count: usize) -> FsFuture<Bytes> {
+    fn read_bytes<'a>(&'a mut self, count: usize) -> FsFuture<'a, Bytes> {
         async move {
             let mut file = self.0.take().unwrap();
             let (res, file) = blocking(move || {
@@ -683,7 +683,7 @@ impl DavFile for LocalFsFile {
         .boxed()
     }
 
-    fn seek<'a>(&'a mut self, pos: SeekFrom) -> FsFuture<u64> {
+    fn seek<'a>(&'a mut self, pos: SeekFrom) -> FsFuture<'a, u64> {
         async move {
             let mut file = self.0.take().unwrap();
             let (res, file) = blocking(move || (file.seek(pos), file)).await;
@@ -693,7 +693,7 @@ impl DavFile for LocalFsFile {
         .boxed()
     }
 
-    fn flush<'a>(&'a mut self) -> FsFuture<()> {
+    fn flush<'a>(&'a mut self) -> FsFuture<'a, ()> {
         async move {
             let mut file = self.0.take().unwrap();
             let (res, file) = blocking(move || (file.flush(), file)).await;

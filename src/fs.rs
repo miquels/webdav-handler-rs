@@ -93,17 +93,17 @@ pub enum ReadDirMeta {
 /// The trait that defines a filesystem.
 pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     /// Open a file.
-    fn open<'a>(&'a self, path: &'a DavPath, options: OpenOptions) -> FsFuture<Box<dyn DavFile>>;
+    fn open<'a>(&'a self, path: &'a DavPath, options: OpenOptions) -> FsFuture<'a, Box<dyn DavFile>>;
 
     /// Perform read_dir.
     fn read_dir<'a>(
         &'a self,
         path: &'a DavPath,
         meta: ReadDirMeta,
-    ) -> FsFuture<FsStream<Box<dyn DavDirEntry>>>;
+    ) -> FsFuture<'a, FsStream<Box<dyn DavDirEntry>>>;
 
     /// Return the metadata of a file or directory.
-    fn metadata<'a>(&'a self, path: &'a DavPath) -> FsFuture<Box<dyn DavMetaData>>;
+    fn metadata<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, Box<dyn DavMetaData>>;
 
     /// Return the metadata of a file, directory or symbolic link.
     ///
@@ -113,7 +113,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn symlink_metadata<'a>(&'a self, path: &'a DavPath) -> FsFuture<Box<dyn DavMetaData>> {
+    fn symlink_metadata<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, Box<dyn DavMetaData>> {
         self.metadata(path)
     }
 
@@ -121,7 +121,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn create_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<()> {
+    fn create_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
         notimplemented_fut!("create_dir")
     }
 
@@ -129,7 +129,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn remove_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<()> {
+    fn remove_dir<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
         notimplemented_fut!("remove_dir")
     }
 
@@ -137,7 +137,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn remove_file<'a>(&'a self, path: &'a DavPath) -> FsFuture<()> {
+    fn remove_file<'a>(&'a self, path: &'a DavPath) -> FsFuture<'a, ()> {
         notimplemented_fut!("remove_file")
     }
 
@@ -150,7 +150,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn rename<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<()> {
+    fn rename<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<'a, ()> {
         notimplemented_fut!("rename")
     }
 
@@ -161,7 +161,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn copy<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<()> {
+    fn copy<'a>(&'a self, from: &'a DavPath, to: &'a DavPath) -> FsFuture<'a, ()> {
         notimplemented_fut!("copy")
     }
 
@@ -170,7 +170,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     /// The default implementation returns FsError::NotImplemented.
     #[doc(hidden)]
     #[allow(unused_variables)]
-    fn set_accessed<'a>(&'a self, path: &'a DavPath, tm: SystemTime) -> FsFuture<()> {
+    fn set_accessed<'a>(&'a self, path: &'a DavPath, tm: SystemTime) -> FsFuture<'a, ()> {
         notimplemented_fut!("set_accessed")
     }
 
@@ -179,7 +179,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     /// The default implementation returns FsError::NotImplemented.
     #[doc(hidden)]
     #[allow(unused_variables)]
-    fn set_modified<'a>(&'a self, path: &'a DavPath, tm: SystemTime) -> FsFuture<()> {
+    fn set_modified<'a>(&'a self, path: &'a DavPath, tm: SystemTime) -> FsFuture<'a, ()> {
         notimplemented_fut!("set_mofified")
     }
 
@@ -199,7 +199,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
         &'a self,
         path: &'a DavPath,
         patch: Vec<(bool, DavProp)>,
-    ) -> FsFuture<Vec<(StatusCode, DavProp)>>
+    ) -> FsFuture<'a, Vec<(StatusCode, DavProp)>>
     {
         notimplemented_fut!("patch_props")
     }
@@ -208,7 +208,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn get_props<'a>(&'a self, path: &'a DavPath, do_content: bool) -> FsFuture<Vec<DavProp>> {
+    fn get_props<'a>(&'a self, path: &'a DavPath, do_content: bool) -> FsFuture<'a, Vec<DavProp>> {
         notimplemented_fut!("get_props")
     }
 
@@ -216,7 +216,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn get_prop<'a>(&'a self, path: &'a DavPath, prop: DavProp) -> FsFuture<Vec<u8>> {
+    fn get_prop<'a>(&'a self, path: &'a DavPath, prop: DavProp) -> FsFuture<'a, Vec<u8>> {
         notimplemented_fut!("get_prop`")
     }
 
@@ -228,7 +228,7 @@ pub trait DavFileSystem: Sync + Send + BoxCloneFs {
     ///
     /// The default implementation returns FsError::NotImplemented.
     #[allow(unused_variables)]
-    fn get_quota<'a>(&'a self) -> FsFuture<(u64, Option<u64>)> {
+    fn get_quota<'a>(&'a self) -> FsFuture<'a, (u64, Option<u64>)> {
         notimplemented_fut!("get_quota`")
     }
 }
@@ -260,23 +260,23 @@ pub trait DavDirEntry: Send + Sync {
     fn name(&self) -> Vec<u8>;
 
     /// Metadata of the entry.
-    fn metadata<'a>(&'a self) -> FsFuture<Box<dyn DavMetaData>>;
+    fn metadata<'a>(&'a self) -> FsFuture<'a, Box<dyn DavMetaData>>;
 
     /// Default implementation of `is_dir` just returns `metadata()?.is_dir()`.
     /// Implementations can override this if their `metadata()` method is
     /// expensive and there is a cheaper way to provide the same info
     /// (e.g. dirent.d_type in unix filesystems).
-    fn is_dir<'a>(&'a self) -> FsFuture<bool> {
+    fn is_dir<'a>(&'a self) -> FsFuture<'a, bool> {
         Box::pin(self.metadata().and_then(|meta| future::ok(meta.is_dir())))
     }
 
     /// Likewise. Default: `!is_dir()`.
-    fn is_file<'a>(&'a self) -> FsFuture<bool> {
+    fn is_file<'a>(&'a self) -> FsFuture<'a, bool> {
         Box::pin(self.metadata().and_then(|meta| future::ok(meta.is_file())))
     }
 
     /// Likewise. Default: `false`.
-    fn is_symlink<'a>(&'a self) -> FsFuture<bool> {
+    fn is_symlink<'a>(&'a self) -> FsFuture<'a, bool> {
         Box::pin(self.metadata().and_then(|meta| future::ok(meta.is_symlink())))
     }
 }
@@ -284,12 +284,12 @@ pub trait DavDirEntry: Send + Sync {
 /// A `DavFile` is the equivalent of `std::fs::File`, should be
 /// readable/writeable/seekable, and be able to return its metadata.
 pub trait DavFile: Debug + Send + Sync {
-    fn metadata<'a>(&'a mut self) -> FsFuture<Box<dyn DavMetaData>>;
-    fn write_buf<'a>(&'a mut self, buf: Box<dyn bytes::Buf + Send>) -> FsFuture<()>;
-    fn write_bytes<'a>(&'a mut self, buf: bytes::Bytes) -> FsFuture<()>;
-    fn read_bytes<'a>(&'a mut self, count: usize) -> FsFuture<bytes::Bytes>;
-    fn seek<'a>(&'a mut self, pos: SeekFrom) -> FsFuture<u64>;
-    fn flush<'a>(&'a mut self) -> FsFuture<()>;
+    fn metadata<'a>(&'a mut self) -> FsFuture<'a, Box<dyn DavMetaData>>;
+    fn write_buf<'a>(&'a mut self, buf: Box<dyn bytes::Buf + Send>) -> FsFuture<'a, ()>;
+    fn write_bytes<'a>(&'a mut self, buf: bytes::Bytes) -> FsFuture<'a, ()>;
+    fn read_bytes<'a>(&'a mut self, count: usize) -> FsFuture<'a, bytes::Bytes>;
+    fn seek<'a>(&'a mut self, pos: SeekFrom) -> FsFuture<'a, u64>;
+    fn flush<'a>(&'a mut self) -> FsFuture<'a, ()>;
 }
 
 /// File metadata. Basically type, length, and some timestamps.

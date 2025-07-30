@@ -553,11 +553,11 @@ impl HbsFile {
 }
 
 impl DavFile for HbsFile {
-    fn metadata<'a>(&'a mut self) -> FsFuture<Box<dyn DavMetaData>> {
+    fn metadata<'a>(&'a mut self) -> FsFuture<'a, Box<dyn DavMetaData>> {
         async move { Ok(Box::new(self.meta.clone()) as Box<dyn DavMetaData>) }.boxed()
     }
 
-    fn read_bytes<'a>(&'a mut self, count: usize) -> FsFuture<Bytes> {
+    fn read_bytes<'a>(&'a mut self, count: usize) -> FsFuture<'a, Bytes> {
         async move {
             let start = self.pos;
             let end = std::cmp::min(self.pos + count, self.data.len());
@@ -568,7 +568,7 @@ impl DavFile for HbsFile {
         .boxed()
     }
 
-    fn seek<'a>(&'a mut self, pos: SeekFrom) -> FsFuture<u64> {
+    fn seek<'a>(&'a mut self, pos: SeekFrom) -> FsFuture<'a, u64> {
         async move {
             let (start, offset): (u64, i64) = match pos {
                 SeekFrom::Start(npos) => (0, npos as i64),
@@ -588,15 +588,15 @@ impl DavFile for HbsFile {
         .boxed()
     }
 
-    fn write_buf<'a>(&'a mut self, _buf: Box<dyn bytes::Buf + Send>) -> FsFuture<()> {
+    fn write_buf<'a>(&'a mut self, _buf: Box<dyn bytes::Buf + Send>) -> FsFuture<'a, ()> {
         Box::pin(future::ready(Err(FsError::NotImplemented)))
     }
 
-    fn write_bytes<'a>(&'a mut self, _buf: bytes::Bytes) -> FsFuture<()> {
+    fn write_bytes<'a>(&'a mut self, _buf: bytes::Bytes) -> FsFuture<'a, ()> {
         Box::pin(future::ready(Err(FsError::NotImplemented)))
     }
 
-    fn flush<'a>(&'a mut self) -> FsFuture<()> {
+    fn flush<'a>(&'a mut self) -> FsFuture<'a, ()> {
         Box::pin(future::ready(Ok(())))
     }
 }
