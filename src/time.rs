@@ -51,10 +51,13 @@ pub(crate) fn systemtime_to_httpdate(t: SystemTime) -> String {
     v[0].to_str().unwrap().to_owned()
 }
 
-pub(crate) fn systemtime_to_rfc3339(t: SystemTime) -> String {
+pub(crate) fn systemtime_to_rfc3339_without_nanosecond(t: SystemTime) -> String {
     // 1996-12-19T16:39:57Z
     use time::format_description::well_known::Rfc3339;
-    time::OffsetDateTime::from(t).format(&Rfc3339)
+    time::OffsetDateTime::from(t)
+        .replace_nanosecond(0)
+        .ok()
+        .and_then(|x| x.format(&Rfc3339).ok())
         .unwrap_or("1970-01-01T00:00:00Z".into())
 }
 

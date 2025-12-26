@@ -24,7 +24,7 @@ use crate::errors::*;
 use crate::fs::*;
 use crate::handle_lock::{list_lockdiscovery, list_supportedlock};
 use crate::ls::*;
-use crate::time::{systemtime_to_httpdate, systemtime_to_rfc3339};
+use crate::time::{systemtime_to_httpdate, systemtime_to_rfc3339_without_nanosecond};
 use crate::util::{MemBuffer, dav_xml_error};
 use crate::{DavInner, DavResult};
 
@@ -663,8 +663,9 @@ impl PropWriter {
                 pfx = "D";
                 match prop.name.as_str() {
                     "creationdate" => {
+                        // note: for Windows clients, nano seconds are not allowed.
                         if let Ok(time) = meta.created() {
-                            let tm = systemtime_to_rfc3339(time);
+                            let tm = systemtime_to_rfc3339_without_nanosecond(time);
                             return self.build_elem(docontent, pfx, prop, tm);
                         }
                         // use ctime instead - apache seems to do this.
@@ -675,7 +676,7 @@ impl PropWriter {
                                     time = mtime;
                                 }
                             }
-                            let tm = systemtime_to_rfc3339(time);
+                            let tm = systemtime_to_rfc3339_without_nanosecond(time);
                             return self.build_elem(docontent, pfx, prop, tm);
                         }
                     },
